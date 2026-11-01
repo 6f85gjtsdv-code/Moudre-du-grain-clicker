@@ -247,7 +247,13 @@ const UP0=[
 {id:'m',n:'Âge d’or du blé',i:'👑',c:2e9,k:'p',v:3,d:'Production de l’équipe ×3'},
 {id:'i',n:'Force cosmique',i:'🌠',c:5e9,k:'c',v:5,d:'Gain par clic ×5'}];
 const WU=[['Tabliers neufs','🧵'],['Foin de qualité','🌾'],['Joug solide','🪢'],['Voiles en toile','⛵'],['Roue en chêne','⚙️'],['Four à pain','🥖'],['Chaudière chauffée','🔥'],['Runes gravées','🔣'],['Écailles brillantes','✨'],['Chaîne de montage','🔩'],['Circuits optimisés','💾'],['Carburant stellaire','⛽'],['Cristaux de blé','💎'],['Prière quotidienne','🙏']];
-const UPS=UP0.concat(
+const UPS=UP0.concat([
+{id:'s0',n:'Poche supplémentaire',i:'🧷',c:2e5,k:'s',v:1,d:'+1 emplacement d’équipement'},
+{id:'s1',n:'Ceinture à outils',i:'🪢',c:3e7,k:'s',v:1,d:'+1 emplacement d’équipement'},
+{id:'s2',n:'Bandoulière',i:'💼',c:2e9,k:'s',v:1,d:'+1 emplacement d’équipement'},
+{id:'s3',n:'Sac à dos du meunier',i:'🎒',c:1e11,k:'s',v:1,d:'+1 emplacement d’équipement'},
+{id:'s4',n:'Étagère magique',i:'📚',c:5e12,k:'s',v:1,d:'+1 emplacement d’équipement'},
+{id:'s5',n:'Dimension de poche',i:'🌌',c:3e14,k:'s',v:1,d:'+1 emplacement d’équipement'}],
 WU.map((x,i)=>({id:'w'+i,n:x[0],i:x[1],c:WORK[i].b*12,k:'p',w:i,v:2,d:`${WORK[i].n} : production ×2`})),
 WU.map((x,i)=>({id:'z'+i,n:'Maîtrise : '+WORK[i].n.toLowerCase(),i:'🏅',c:WORK[i].b*150,k:'p',w:i,v:2,d:`${WORK[i].n} : production ×2`}))
 ).sort((a,b)=>a.c-b.c);
@@ -267,14 +273,15 @@ const EV=[{n:'Pluie d’acide',i:'☣️',c:5,p:5,col:'#7be34a'},{n:'Ruée vers 
 const rnd=(h,k)=>{let x=Math.imul(h^k*0x9e3779b1,0x85ebca6b);x^=x>>>13;x=Math.imul(x,0xc2b2ae35);x^=x>>>16;return(x>>>0)/4294967296};
 function ev(){const n=Date.now(),h=Math.floor(n/36e5),s=h*36e5+Math.floor(rnd(h,1)*55*6e4);return n>=s&&n<s+12e4?{e:EV[Math.floor(rnd(h,2)*EV.length)],left:s+12e4-n}:null}
 const em=k=>{const E=ev();return E?E.e[k]:1};
-const gm=()=>(S.rb+1)*(S.eq?item(S.eq).m:1);
+const slots=()=>3+UPS.filter(u=>u.k==='s'&&S.up.includes(u.id)).length;
+const gm=()=>(S.rb+1)*S.eq.reduce((a,id)=>a*item(id).m,1);
 const rbNeed=()=>1e8*Math.pow(6,S.rb);
 let lastEv='';
 const KEY='mdgc-v1',HA=[40,36,34,30,30];
-let S={g:0,tot:0,tool:0,w:[0,0,0,0,0],up:[],clk:0,rb:0,inv:{},eq:'',t:Date.now()};
+let S={g:0,tot:0,tool:0,w:[0,0,0,0,0],up:[],clk:0,rb:0,inv:{},eq:[],t:Date.now()};
 try{const r=JSON.parse(localStorage.getItem(KEY));if(r&&typeof r.g==='number')S=Object.assign(S,r)}catch(e){}
 while(S.w.length<WORK.length)S.w.push(0);
-if(S.tool>=TOOLS.length)S.tool=0;if(!S.inv)S.inv={};if(S.eq&&!S.inv[S.eq])S.eq='';
+if(S.tool>=TOOLS.length)S.tool=0;if(!S.inv)S.inv={};if(!Array.isArray(S.eq))S.eq=S.eq?[S.eq]:[];S.eq=S.eq.filter(id=>S.inv[id]);
 let tab='tools';
 const mult=k=>UPS.filter(u=>u.k===k&&u.w===undefined&&S.up.includes(u.id)).reduce((a,u)=>a*u.v,1);
 const crit=()=>.03+UPS.filter(u=>u.k==='x'&&S.up.includes(u.id)).reduce((a,u)=>a+u.v,0);
@@ -347,7 +354,7 @@ function render(){
     if(!h)h='<div class="empty">'+(S.up.length===UPS.length?'Tout est acheté. Tu es un vrai maître meunier !':'Moulons encore un peu pour débloquer des améliorations.')+'</div>';
   }
   if(tab==='shop')for(let c=0;c<30;c++){const P=RP(c);h+=`<div class="card" data-t="crate" data-i="${c}" tabindex="0" role="button"><span class="ico">${crIc(c)}</span><span class="txt"><b>${crName(c)}</b><small>Mythique ${(P[3]*100).toFixed(1)} % · meilleur ×${itemM(c,3,0)}</small></span><span class="cost"><i>${fmt(crCost(c))}</i><button class="pv" data-c="${c}">Aperçu</button></span></div>`}
-  if(tab==='inv'){const A=Object.keys(S.inv).map(id=>item(id)).sort((a,b)=>b.m-a.m);h=A.length?A.map(o=>card('inv',o.id,o.i,`<span style="color:${RC[o.r]}">${o.n}</span>`,`${RN[o.r]} · gains ×${o.m} · possédé ×${S.inv[o.id]}`,S.eq===o.id?'<i>✓</i>Équipé':'Équiper',S.eq===o.id?'own eq':'own')).join(''):'<div class="empty">Aucun objet. Ouvre une caisse dans la boutique !</div>'}
+  if(tab==='inv'){const A=Object.keys(S.inv).map(id=>item(id)).sort((a,b)=>b.m-a.m);h=`<p class="mu" style="margin:2px 4px 4px">Emplacements : ${S.eq.length}/${slots()} · clique pour équiper ou retirer</p>`+(A.length?A.map(o=>card('inv',o.id,o.i,`<span style="color:${RC[o.r]}">${o.n}</span>`,`${RN[o.r]} · gains ×${o.m} · possédé ×${S.inv[o.id]}`,S.eq.includes(o.id)?'<i>✓</i>Équipé':'Équiper',S.eq.includes(o.id)?'own eq':'own')).join(''):'<div class="empty">Aucun objet. Ouvre une caisse dans la boutique !</div>')}
   if(tab==='rb')h=`<div class="rbx"><h3>Rebirth ${S.rb}</h3><p>Gains actuels : ×${S.rb+1} · prochain rebirth : ×${S.rb+2}</p><div class="bar"><i id="rbbar"></i></div><small id="rbtx"></small></div>`+card('rb',0,'🔄','Renaître','Remet à zéro grains, outils, équipe et améliorations. Tu gardes tes objets de caisse.',`<i>×${S.rb+2}</i>gains`);
   L.innerHTML=h;ui();
 }
@@ -369,7 +376,7 @@ function ui(){
   const sp=Math.max(1.6,14/(1+Math.log10(1+cps()*3)));document.documentElement.style.setProperty('--spin',sp.toFixed(2)+'s');
 }
 function buy(t,i){
-  if(t==='inv'){S.eq=i;toast(`Équipé : ${item(i).n}`);render();return}
+  if(t==='inv'){if(S.eq.includes(i))S.eq=S.eq.filter(x=>x!==i);else if(S.eq.length<slots())S.eq.push(i);else{toast(`Emplacements pleins (${slots()}) : retire un objet d’abord`);return}render();return}
   if(t==='crate'){openCrate(+i);return}
   if(t==='rb'){rbClick();return}
   if(!can(t,i))return;
@@ -383,20 +390,20 @@ document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{tab
 let rs;$('#reset').addEventListener('click',e=>{
   if(!rs){e.target.textContent='Sûr ? Clique encore';rs=setTimeout(()=>{rs=null;e.target.textContent='Recommencer'},3000);return}
   clearTimeout(rs);rs=null;e.target.textContent='Recommencer';
-  S={g:0,tot:0,tool:0,w:WORK.map(()=>0),up:[],clk:0,rb:0,inv:{},eq:'',t:Date.now()};applyTool();crew();render();toast('Nouvelle partie !');
+  S={g:0,tot:0,tool:0,w:WORK.map(()=>0),up:[],clk:0,rb:0,inv:{},eq:[],t:Date.now()};applyTool();crew();render();toast('Nouvelle partie !');
 });
 let busy=false,rbc=0;
 function modal(h){const m=$('#modal');m.innerHTML=`<div class="box"><button class="x" aria-label="Fermer">✕</button>${h}</div>`;m.classList.add('on')}
 function closeModal(){$('#modal').classList.remove('on');$('#modal').innerHTML='';busy=false}
 $('#modal').addEventListener('click',e=>{if(e.target.id==='modal'||e.target.closest('.x'))closeModal()});
 addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
-function preview(c){const P=RP(c);let h=`<h2>${crIc(c)} ${crName(c)}</h2><p class="mu">Prix : ${fmt(crCost(c))} grains · un seul objet équipé à la fois</p>`;
+function preview(c){const P=RP(c);let h=`<h2>${crIc(c)} ${crName(c)}</h2><p class="mu">Prix : ${fmt(crCost(c))} grains · les objets équipés multiplient leurs bonus</p>`;
   for(let r=3;r>=0;r--){h+=`<h4 style="color:${RC[r]}">${RN[r]} · ${(P[r]*100).toFixed(2)} %</h4>`;for(let j=0;j<10;j++){const o=item(c+'-'+r+'-'+j);h+=`<div class="pr"><span>${o.i}</span><b>${o.n}</b><em>×${o.m}</em><small>${(P[r]*IW(j)/19*100).toFixed(2)} %</small></div>`}}
   modal(h+`<button class="btn" id="mo">Ouvrir (${fmt(crCost(c))})</button>`);$('#mo').onclick=()=>{closeModal();openCrate(c)}}
 function openCrate(c){
   if(busy)return;if(S.g<crCost(c)){toast('Pas assez de grains');return}
   busy=true;S.g-=crCost(c);const o=rollItem(c);S.inv[o.id]=(S.inv[o.id]||0)+1;
-  const better=!S.eq||o.m>item(S.eq).m;if(better)S.eq=o.id;
+  let better=false;if(!S.eq.includes(o.id)){if(S.eq.length<slots()){S.eq.push(o.id);better=true}else{const wr=S.eq.reduce((a,id)=>item(id).m<item(a).m?id:a,S.eq[0]);if(o.m>item(wr).m){S.eq[S.eq.indexOf(wr)]=o.id;better=true}}}
   modal('<div class="rv"><div class="bx">'+crIc(c)+'</div></div>');ui();
   setTimeout(()=>{const rv=$('.rv');if(!rv){busy=false;return}
     rv.innerHTML=`<div><div class="it" style="--rc:${RC[o.r]}"><div class="big">${o.i}</div><b>${o.n}</b><span class="rar">${RN[o.r]}</span><p>Gains ×${o.m}</p><small>${better?'Équipé automatiquement !':'Ajouté à l’inventaire'}</small></div><button class="btn" id="ag">Rouvrir (${fmt(crCost(c))})</button></div>`;
@@ -404,7 +411,7 @@ function openCrate(c){
 function rbClick(){
   if(S.tot<rbNeed()){toast('Il faut moudre '+fmt(rbNeed())+' grains');return}
   if(!rbc){rbc=setTimeout(()=>rbc=0,3000);toast('Clique encore pour confirmer le rebirth');return}
-  clearTimeout(rbc);rbc=0;S.rb++;S.g=0;S.tot=0;S.tool=0;S.w=WORK.map(()=>0);S.up=[];applyTool();crew();
+  clearTimeout(rbc);rbc=0;S.rb++;S.g=0;S.tot=0;S.tool=0;S.w=WORK.map(()=>0);S.up=S.up.filter(id=>id[0]==='s'&&id.length===2);applyTool();crew();
   burst(40,true,{x:stage.clientWidth/2,y:stage.clientHeight*.45});toast(`Rebirth ${S.rb} ! Gains ×${S.rb+1}`);render()}
 function save(){S.t=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 setInterval(save,5000);addEventListener('beforeunload',save);
